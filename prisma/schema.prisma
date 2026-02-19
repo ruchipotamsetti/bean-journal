@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// We do NOT create a User model here because Supabase Auth manages users.
+// The userId field in CoffeeLog stores the Supabase Auth user's UUID.
+
+model CoffeeLog {
+  id         String   @id @default(uuid())
+  userId     String // Supabase Auth user ID
+  cafeName   String?
+  coffeeType String // e.g., "Cortado", "Latte", "Pour Over"
+  rating     Int // 1-5 stars
+  notes      String?
+  photoUrl   String?
+  brewMethod String? // e.g., "Espresso", "Drip", "Cold Brew"
+  loggedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Recipe {
+  id              String   @id @default(uuid())
+  name            String
+  description     String
+  coffeeType      String // e.g., "Cortado", "Latte"
+  brewMethod      String // e.g., "Espresso", "Pour Over"
+  difficulty      String // "Easy", "Medium", "Hard"
+  prepTimeMinutes Int
+  ingredients     String[] // Array of ingredient strings
+  instructions    String[] // Array of instruction steps
+  equipment       String[] // Required equipment
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+}
