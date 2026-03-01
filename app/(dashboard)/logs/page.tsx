@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { CoffeeLogCard } from "@/components/coffee-log-card";
-import { AddCoffeeLogForm } from "@/components/add-coffee-log-form";
+import { AddCoffeeLogForm, type CoffeeLogData } from "@/components/add-coffee-log-form";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
 type CoffeeLog = {
@@ -17,7 +18,8 @@ type CoffeeLog = {
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<CoffeeLog[]>([]);
-  const [showForm, setShowForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingLog, setEditingLog] = useState<CoffeeLogData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchLogs = async () => {
@@ -38,21 +40,34 @@ export default function LogsPage() {
     <div>
       <div className="mb-10 flex items-center justify-between">
         <h1 className="text-3xl text-text-primary md:text-4xl">Your Coffee Journey</h1>
-        <Button onClick={() => setShowForm(true)} disabled={showForm}>
+        <Button onClick={() => setShowAddModal(true)}>
           + New Brew
         </Button>
       </div>
 
-      {showForm && (
-        <div className="mb-8">
+      {/* Add log modal */}
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)}>
+        <AddCoffeeLogForm
+          onSuccess={() => {
+            setShowAddModal(false);
+            fetchLogs();
+          }}
+        />
+      </Modal>
+
+      {/* Edit log modal */}
+      <Modal open={!!editingLog} onClose={() => setEditingLog(null)}>
+        {editingLog && (
           <AddCoffeeLogForm
+            key={editingLog.id}
+            initialData={editingLog}
             onSuccess={() => {
-              setShowForm(false);
+              setEditingLog(null);
               fetchLogs();
             }}
           />
-        </div>
-      )}
+        )}
+      </Modal>
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -75,7 +90,7 @@ export default function LogsPage() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {logs.map((log, i) => (
             <div key={log.id} className={`animate-fade-up stagger-${Math.min(i + 1, 6)}`}>
-              <CoffeeLogCard log={log} onUpdated={fetchLogs} />
+              <CoffeeLogCard log={log} onEdit={() => setEditingLog(log)} />
             </div>
           ))}
         </div>

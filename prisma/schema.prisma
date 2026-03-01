@@ -31,7 +31,7 @@ model CoffeeLog {
 }
 
 model Recipe {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   name            String
   description     String
   coffeeType      String // e.g., "Cortado", "Latte"
@@ -42,5 +42,31 @@ model Recipe {
   instructions    String[] // Array of instruction steps
   equipment       String[] // Required equipment
   imageUrl        String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime     @default(now())
+  steps           RecipeStep[]
+}
+
+// Timed steps for the brew timer
+model RecipeStep {
+  id          String  @id @default(uuid())
+  recipeId    String
+  recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  order       Int     // Step order (1-based)
+  label       String  // e.g., "Bloom", "First Pour", "Wait"
+  description String? // Detailed instruction for this step
+  durationSec Int     // Duration in seconds (0 = manual advance)
+
+  @@index([recipeId])
+}
+
+// User equipment & ingredient profile for recipe matching
+model UserProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique // Supabase Auth user ID
+  equipment   String[] // Equipment the user owns
+  ingredients String[] // Ingredients the user has on hand
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }

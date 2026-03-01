@@ -8,7 +8,8 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // Clear existing recipes to avoid duplicates on re-seed
+  // Clear existing data to avoid duplicates on re-seed
+  await prisma.recipeStep.deleteMany();
   await prisma.recipe.deleteMany();
 
   await prisma.recipe.createMany({
@@ -256,6 +257,97 @@ async function main() {
 
   const count = await prisma.recipe.count();
   console.log(`✅ Seeded ${count} recipes successfully!`);
+
+  // Seed timed brew steps for key recipes
+  const allRecipes = await prisma.recipe.findMany();
+  const recipeByName = (name: string) => allRecipes.find((r) => r.name === name);
+
+  // Pour Over (V60) steps
+  const pourOver = recipeByName("Pour Over (V60)");
+  if (pourOver) {
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: pourOver.id, order: 1, label: "Rinse Filter", description: "Place filter in V60 and rinse with hot water. Discard rinse water.", durationSec: 15 },
+        { recipeId: pourOver.id, order: 2, label: "Add Grounds", description: "Add 15g of medium-fine grounds and create a small well in the center.", durationSec: 0 },
+        { recipeId: pourOver.id, order: 3, label: "Bloom", description: "Pour 30g of water over the grounds in a circular motion.", durationSec: 10 },
+        { recipeId: pourOver.id, order: 4, label: "Wait (Bloom)", description: "Let the coffee bloom and degas.", durationSec: 35 },
+        { recipeId: pourOver.id, order: 5, label: "First Pour", description: "Slowly pour water in concentric circles up to 120g total.", durationSec: 30 },
+        { recipeId: pourOver.id, order: 6, label: "Second Pour", description: "Continue pouring in circles up to 200g total.", durationSec: 30 },
+        { recipeId: pourOver.id, order: 7, label: "Final Pour", description: "Pour remaining water up to 250g total.", durationSec: 20 },
+        { recipeId: pourOver.id, order: 8, label: "Drawdown", description: "Wait for all water to drain through the grounds.", durationSec: 60 },
+      ],
+    });
+  }
+
+  // French Press steps
+  const frenchPress = recipeByName("French Press");
+  if (frenchPress) {
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: frenchPress.id, order: 1, label: "Add Grounds", description: "Add 30g of coarsely ground coffee to the French press.", durationSec: 0 },
+        { recipeId: frenchPress.id, order: 2, label: "Pour Water", description: "Pour 500ml of hot water over the grounds.", durationSec: 15 },
+        { recipeId: frenchPress.id, order: 3, label: "Stir", description: "Give a gentle stir to ensure all grounds are wet.", durationSec: 5 },
+        { recipeId: frenchPress.id, order: 4, label: "Steep", description: "Place lid on (don't press) and let it steep.", durationSec: 240 },
+        { recipeId: frenchPress.id, order: 5, label: "Press & Pour", description: "Press the plunger down slowly and pour immediately.", durationSec: 0 },
+      ],
+    });
+  }
+
+  // Aeropress steps
+  const aeropress = recipeByName("Aeropress Classic");
+  if (aeropress) {
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: aeropress.id, order: 1, label: "Prep Filter", description: "Place paper filter in cap and rinse with hot water.", durationSec: 10 },
+        { recipeId: aeropress.id, order: 2, label: "Add Grounds", description: "Assemble Aeropress on your mug and add 15g of grounds.", durationSec: 0 },
+        { recipeId: aeropress.id, order: 3, label: "Pour & Stir", description: "Pour 200g of water and stir 3 times.", durationSec: 10 },
+        { recipeId: aeropress.id, order: 4, label: "Steep", description: "Insert plunger to create a seal and wait.", durationSec: 60 },
+        { recipeId: aeropress.id, order: 5, label: "Press", description: "Press down slowly and steadily.", durationSec: 25 },
+      ],
+    });
+  }
+
+  // Cold Brew steps
+  const coldBrew = recipeByName("Cold Brew Concentrate");
+  if (coldBrew) {
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: coldBrew.id, order: 1, label: "Combine", description: "Add 100g coarse grounds and 750ml cold water to a jar.", durationSec: 0 },
+        { recipeId: coldBrew.id, order: 2, label: "Stir", description: "Stir to ensure all grounds are saturated.", durationSec: 15 },
+        { recipeId: coldBrew.id, order: 3, label: "Refrigerate", description: "Cover and refrigerate for 12-24 hours. (Timer shows minimum time reminder.)", durationSec: 30 },
+        { recipeId: coldBrew.id, order: 4, label: "Strain", description: "Strain through a fine mesh sieve or cheesecloth.", durationSec: 0 },
+      ],
+    });
+  }
+
+  // Classic Espresso steps
+  const espresso = recipeByName("Classic Espresso");
+  if (espresso) {
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: espresso.id, order: 1, label: "Grind", description: "Grind 18g of beans to a fine consistency (like table salt).", durationSec: 0 },
+        { recipeId: espresso.id, order: 2, label: "Distribute & Tamp", description: "Distribute grounds evenly and tamp with ~30 lbs of pressure.", durationSec: 0 },
+        { recipeId: espresso.id, order: 3, label: "Extract", description: "Lock portafilter and start extraction.", durationSec: 28 },
+      ],
+    });
+  }
+
+  // Moka Pot steps
+  const mokaPot = recipeByName("Moka Pot Espresso");
+  if (mokaPot) {
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: mokaPot.id, order: 1, label: "Fill Water", description: "Fill bottom chamber with hot water up to the safety valve.", durationSec: 0 },
+        { recipeId: mokaPot.id, order: 2, label: "Add Grounds", description: "Fill the filter basket with grounds, level but don't tamp.", durationSec: 0 },
+        { recipeId: mokaPot.id, order: 3, label: "Assemble & Heat", description: "Assemble and place on medium heat.", durationSec: 0 },
+        { recipeId: mokaPot.id, order: 4, label: "Brew", description: "Wait for coffee to flow into the top chamber. Reduce heat when flowing.", durationSec: 180 },
+        { recipeId: mokaPot.id, order: 5, label: "Remove & Serve", description: "Remove from heat when you hear hissing. Serve immediately.", durationSec: 0 },
+      ],
+    });
+  }
+
+  const stepCount = await prisma.recipeStep.count();
+  console.log(`✅ Seeded ${stepCount} recipe steps successfully!`);
 }
 
 main()

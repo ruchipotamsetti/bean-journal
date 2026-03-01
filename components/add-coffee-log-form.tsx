@@ -48,12 +48,30 @@ const COFFEE_TYPES = [
   "Other",
 ];
 
-export function AddCoffeeLogForm({ onSuccess }: { onSuccess: () => void }) {
-  const [coffeeType, setCoffeeType] = useState("");
-  const [cafeName, setCafeName] = useState("");
-  const [rating, setRating] = useState(0);
-  const [notes, setNotes] = useState("");
-  const [brewMethod, setBrewMethod] = useState("");
+export type CoffeeLogData = {
+  id: string;
+  coffeeType: string;
+  cafeName: string | null;
+  rating: number;
+  notes: string | null;
+  brewMethod: string | null;
+  loggedAt: string;
+};
+
+interface AddCoffeeLogFormProps {
+  onSuccess: () => void;
+  /** When provided, form starts in edit mode pre-filled with this data */
+  initialData?: CoffeeLogData;
+}
+
+export function AddCoffeeLogForm({ onSuccess, initialData }: AddCoffeeLogFormProps) {
+  const isEditMode = !!initialData;
+
+  const [coffeeType, setCoffeeType] = useState(initialData?.coffeeType ?? "");
+  const [cafeName, setCafeName] = useState(initialData?.cafeName ?? "");
+  const [rating, setRating] = useState(initialData?.rating ?? 0);
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [brewMethod, setBrewMethod] = useState(initialData?.brewMethod ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -73,33 +91,42 @@ export function AddCoffeeLogForm({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true);
 
-    const res = await fetch("/api/logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      const payload = {
+        ...(isEditMode ? { id: initialData.id } : {}),
         coffeeType,
         cafeName: cafeName || null,
         rating,
         notes: notes || null,
         brewMethod: brewMethod || null,
-      }),
-    });
+      };
 
-    if (!res.ok) {
-      setError("Failed to save. Please try again.");
+      const res = await fetch("/api/logs", {
+        method: isEditMode ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error || `Failed to ${isEditMode ? "update" : "save"} log.`);
+      }
+
+      router.refresh();
+      onSuccess();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setLoading(false);
-    router.refresh();
-    onSuccess();
   };
 
   return (
     <Card className="border-border-tan animate-fade-up">
       <CardHeader>
-        <CardTitle className="font-heading text-xl text-text-primary">What did you drink?</CardTitle>
+        <CardTitle className="font-heading text-xl text-text-primary">
+          {isEditMode ? "Edit your brew" : "What did you drink?"}
+        </CardTitle>
       </CardHeader>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <CardContent className="space-y-5">
@@ -185,7 +212,7 @@ export function AddCoffeeLogForm({ onSuccess }: { onSuccess: () => void }) {
         </CardContent>
         <CardFooter className="flex gap-3">
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Save Log"}
+            {loading ? "Saving..." : isEditMode ? "Update Log" : "Save Log"}
           </Button>
           <Button type="button" variant="outline" onClick={onSuccess}>
             Cancel

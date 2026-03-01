@@ -31,6 +31,7 @@ export function Navbar({ userEmail }: { userEmail: string }) {
   const navLinks = [
     { href: "/logs", label: "Your Journey" },
     { href: "/recipes", label: "Brew Guides" },
+    { href: "/settings", label: "Brew Setup" },
   ];
 
   return (

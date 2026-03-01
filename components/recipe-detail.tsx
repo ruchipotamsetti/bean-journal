@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,9 +30,16 @@ export function RecipeDetail({
 }) {
   return (
     <div className="animate-fade-up">
-      <Button variant="ghost" onClick={onBack} className="mb-8">
-        ← Back to Brew Guides
-      </Button>
+      <div className="mb-8 flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          ← Back to Brew Guides
+        </Button>
+        <Link href={`/recipes/${recipe.id}/brew`}>
+          <Button>
+            ⏱ Start Brew Timer
+          </Button>
+        </Link>
+      </div>
       <Card className="border-border-tan">
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

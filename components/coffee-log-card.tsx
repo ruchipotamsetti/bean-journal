@@ -2,14 +2,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+
+type RecipeMatch = {
+  recipeId: string;
+  recipeName: string;
+  score: number;
+  reasons: string[];
+};
 
 export function CoffeeLogCard({
   log,
-  onUpdated,
+  onEdit,
 }: {
   log: {
     id: string;
@@ -20,140 +24,105 @@ export function CoffeeLogCard({
     brewMethod: string | null;
     loggedAt: string;
   };
-  onUpdated?: () => void;
+  onEdit?: () => void;
 }) {
-  const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
-  const [cafeName, setCafeName] = useState(log.cafeName ?? "");
-  const [coffeeType, setCoffeeType] = useState(log.coffeeType);
-  const [brewMethod, setBrewMethod] = useState(log.brewMethod ?? "");
-  const [rating, setRating] = useState<number>(log.rating);
-  const [notes, setNotes] = useState(log.notes ?? "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [matches, setMatches] = useState<RecipeMatch[] | null>(null);
+  const [showMatches, setShowMatches] = useState(false);
+  const [matchLoading, setMatchLoading] = useState(false);
 
-  const handleSave = async () => {
-    setError(null);
-    setLoading(true);
-
-    const payload = {
-      id: log.id,
-      cafeName: cafeName || null,
-      coffeeType,
-      brewMethod: brewMethod || null,
-      rating,
-      notes: notes || null,
-    };
-
+  const fetchMatches = async () => {
+    if (matches) {
+      setShowMatches(!showMatches);
+      return;
+    }
+    setMatchLoading(true);
     try {
-      const res = await fetch("/api/logs", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json?.error || "Failed to update log");
+      const res = await fetch(`/api/logs/${log.id}/matches`);
+      if (res.ok) {
+        const data = await res.json();
+        setMatches(data);
+        setShowMatches(true);
       }
-
-      setIsEditing(false);
-      // Let parent refresh its list; also trigger a router refresh for server-side updates
-      try {
-        onUpdated?.();
-      } catch (e) {
-        // ignore
-      }
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
     } finally {
-      setLoading(false);
+      setMatchLoading(false);
     }
   };
 
   return (
     <div className="rounded-2xl border border-border-tan border-l-4 border-l-accent-warm bg-bg-card p-6 shadow-sm transition-all duration-200 hover:shadow-lg hover:-rotate-1 hover:scale-[1.02] md:p-8 cursor-bean">
-      {!isEditing ? (
-        <>
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-heading text-lg text-text-primary">
-                {log.coffeeType}
-              </h3>
-              {log.cafeName && (
-                <p className="mt-0.5 text-sm text-text-secondary">{log.cafeName}</p>
-              )}
-            </div>
-            {log.brewMethod && (
-              <span className="rounded-full bg-bg-accent px-3 py-1 font-mono-accent text-xs text-accent-warm">
-                {log.brewMethod}
-              </span>
-            )}
-          </div>
-          <div className="mt-3 flex items-center gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span
-                key={i}
-                className={`text-lg ${i < log.rating ? "text-accent-pop" : "text-border-tan"}`}
-              >
-                ★
-              </span>
-            ))}
-          </div>
-          {log.notes && (
-            <p className="mt-3 text-sm leading-relaxed text-text-secondary">{log.notes}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="font-heading text-lg text-text-primary">
+            {log.coffeeType}
+          </h3>
+          {log.cafeName && (
+            <p className="mt-0.5 text-sm text-text-secondary">{log.cafeName}</p>
           )}
-          <div className="flex flex-row justify-between mt-4">
-            <div>
-              <p className="mt-4 font-mono-accent text-xs text-text-secondary/60">
-                {new Date(log.loggedAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </p>
+        </div>
+        {log.brewMethod && (
+          <span className="rounded-full bg-bg-accent px-3 py-1 font-mono-accent text-xs text-accent-warm">
+            {log.brewMethod}
+          </span>
+        )}
+      </div>
+      <div className="mt-3 flex items-center gap-1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <span
+            key={i}
+            className={`text-lg ${i < log.rating ? "text-accent-pop" : "text-border-tan"}`}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+      {log.notes && (
+        <p className="mt-3 text-sm leading-relaxed text-text-secondary">{log.notes}</p>
+      )}
+
+      {/* Recipe matches */}
+      {showMatches && matches && matches.length > 0 && (
+        <div className="mt-4 space-y-2 rounded-xl bg-bg-accent/50 p-3">
+          <p className="font-mono-accent text-xs text-accent-cool font-semibold">Recipe Matches</p>
+          {matches.slice(0, 3).map((m) => (
+            <div key={m.recipeId} className="flex items-center justify-between gap-2">
+              <span className="text-sm text-text-primary truncate">{m.recipeName}</span>
+              <span className="shrink-0 rounded-full bg-accent-cool/15 px-2 py-0.5 font-mono-accent text-xs text-accent-cool">
+                {m.score}%
+              </span>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
-                Edit
-              </Button>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="space-y-3">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <div>
-            <label className="text-xs text-muted-foreground">Coffee Type</label>
-            <Input value={coffeeType} onChange={(e) => setCoffeeType(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Cafe Name</label>
-            <Input value={cafeName} onChange={(e) => setCafeName(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Brew Method</label>
-            <Input value={brewMethod} onChange={(e) => setBrewMethod(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Rating (1-5)</label>
-            <Input type="number" min={1} max={5} value={String(rating)} onChange={(e) => setRating(Number(e.target.value))} />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Notes</label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} size="sm" disabled={loading}>
-              {loading ? "Saving..." : "Save"}
-            </Button>
-          </div>
+          ))}
         </div>
       )}
+      {showMatches && matches && matches.length === 0 && (
+        <div className="mt-4 rounded-xl bg-bg-accent/50 p-3">
+          <p className="text-sm text-text-secondary">No matching recipes found.</p>
+        </div>
+      )}
+
+      <div className="flex flex-row justify-between mt-4">
+        <div>
+          <p className="mt-4 font-mono-accent text-xs text-text-secondary/60">
+            {new Date(log.loggedAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={fetchMatches}
+            variant="ghost"
+            size="sm"
+            disabled={matchLoading}
+          >
+            {matchLoading ? "..." : showMatches ? "Hide Matches" : "Find Recipes"}
+          </Button>
+          <Button onClick={onEdit} variant="outline" size="sm">
+            Edit
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
