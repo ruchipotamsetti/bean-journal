@@ -75,7 +75,7 @@ export default function LogsPage() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {logs.map((log, i) => (
             <div key={log.id} className={`animate-fade-up stagger-${Math.min(i + 1, 6)}`}>
-              <CoffeeLogCard log={log} />
+              <CoffeeLogCard log={log} onUpdated={fetchLogs} />
             </div>
           ))}
         </div>

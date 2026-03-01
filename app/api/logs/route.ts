@@ -47,3 +47,43 @@ export async function POST(request: Request) {
 
   return NextResponse.json(log, { status: 201 });
 }
+
+// PATCH /api/logs — Edit a coffee log
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { id, ...updateData } = body;
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing log id" }, { status: 400 });
+  }
+
+  // Only allow editing logs belonging to the user
+  const log = await prisma.coffeeLog.updateMany({
+    where: { id, userId: user.id },
+    data: {
+      cafeName: updateData.cafeName ?? undefined,
+      coffeeType: updateData.coffeeType ?? undefined,
+      rating: updateData.rating ?? undefined,
+      notes: updateData.notes ?? undefined,
+      brewMethod: updateData.brewMethod ?? undefined,
+      loggedAt: updateData.loggedAt ?? undefined,
+    },
+  });
+
+  if (log.count === 0) {
+    return NextResponse.json({ error: "Log not found or not owned by user" }, { status: 404 });
+  }
+
+  // Return the updated log
+  const updatedLog = await prisma.coffeeLog.findUnique({ where: { id } });
+  return NextResponse.json(updatedLog);
+}
