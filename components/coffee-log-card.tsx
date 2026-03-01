@@ -99,7 +99,7 @@ export function CoffeeLogCard({
         </div>
       )}
 
-      <div className="flex flex-row justify-between mt-4">
+      <div className="flex flex-row items-baseline justify-between mt-4">
         <div>
           <p className="mt-4 font-mono-accent text-xs text-text-secondary/60">
             {new Date(log.loggedAt).toLocaleDateString("en-US", {

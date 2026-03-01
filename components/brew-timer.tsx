@@ -214,7 +214,7 @@ export function BrewTimer({ recipeName, steps, onComplete }: BrewTimerProps) {
         )}
 
         {/* Controls */}
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center items-center gap-3">
           <Button variant="outline" size="sm" onClick={handleReset}>
             Restart
           </Button>
